@@ -1,9 +1,6 @@
 FROM php:8.2-apache
 
-# ১. কম্পোজার সরাসরি অফিশিয়াল ইমেজ থেকে কপি করে আনা
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# ২. প্রয়োজনীয় সিস্টেম লাইব্রেরি এবং পিএইচপি এক্সটেনশন ইনস্টল
+# ১. সিস্টেম টুলস এবং পিএইচপি এক্সটেনশন ইনস্টল
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
@@ -13,18 +10,22 @@ RUN apt-get update && apt-get install -y \
     unzip \
     && docker-php-ext-install gd pdo pdo_mysql
 
-# ৩. আপনার সব ফাইল সার্ভারে কপি করা
+# ২. কম্পোজার সরাসরি কপি করে আনা
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# ৩. প্রজেক্ট ফাইল কপি করা
 COPY . /var/www/html
 WORKDIR /var/www/html
 
-# ৪. লারাবেল পারমিশন ঠিক করা
+# ৪. অ্যাপাচি কনফিগারেশন এবং পারমিশন সেট করা (এটিই ৫০০ এরর ঠিক করবে)
+RUN a2enmod rewrite
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# ৫. কম্পোজার দিয়ে প্রজেক্ট রেডি করা (এরর এড়াতে প্ল্যাটফর্ম রিকোয়ারমেন্ট ইগনোর করা হয়েছে)
-RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs
+# ৫. কম্পোজার রান করা
+RUN composer install --no-dev --optimize-autoloader
 
-# ৬. অ্যাপাচি মোড রিরাইট অন করা
-RUN a2enmod rewrite
+# ৬. পোর্ট এক্সপোজ করা
+EXPOSE 80
 
-RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
-RUN a2enmod rewrite
+
