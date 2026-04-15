@@ -24,3 +24,5 @@ RUN a2enmod rewrite
 RUN composer install --no-dev --optimize-autoloader
 RUN php artisan config:cache
 
+RUN composer install --no-dev --optimize-autoloader
+RUN chmod -R 775 storage bootstrap/cache
